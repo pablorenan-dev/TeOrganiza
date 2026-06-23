@@ -9,6 +9,7 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.time.Period;
 
 public class PessoaPanel extends JPanel {
 
@@ -102,8 +103,9 @@ public class PessoaPanel extends JPanel {
         tableModel.setRowCount(0);
         List<Pessoa> pessoas = service.listar();
         for (Pessoa p : pessoas) {
+            int idade = Period.between(p.getDataDeNascimento(), LocalDate.now()).getYears();
             tableModel.addRow(new Object[]{
-                p.getId(), p.getNome(), p.getCpf(),
+                p.getId(), p.getNome(), p.getCpf(), idade,
                 p.getTelefone(), p.getEmail(), p.isAtivo() ? "Sim" : "Não"
             });
         }
