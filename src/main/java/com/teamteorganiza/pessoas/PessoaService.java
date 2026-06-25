@@ -23,4 +23,21 @@ public class PessoaService {
     public List<Pessoa> listar() {
         return repositorio.listarTodos();
     }
+
+    public void editar(int id, String nome, LocalDate nascimento, String telefone, String email) {
+        repositorio.buscarPorId(id).ifPresent(p -> {
+            p.setNome(nome);
+            p.setDataDeNascimento(nascimento);
+            p.setTelefone(telefone);
+            p.setEmail(email);
+        });
+    }
+
+    public void desativar(int id) {
+        repositorio.buscarPorId(id).ifPresent(p -> p.setAtivo(!p.isAtivo()));
+    }
+
+    public void remover(int id) {
+        repositorio.remover(id);
+    }
 }
