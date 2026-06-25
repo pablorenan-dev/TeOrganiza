@@ -2,6 +2,8 @@ package com.teamteorganiza.pessoas.ui;
 
 import com.teamteorganiza.pessoas.Pessoa;
 import com.teamteorganiza.pessoas.PessoaService;
+import com.teamteorganiza.pessoas.TipoPessoa;
+import com.teamteorganiza.pessoas.TipoPessoaService;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -9,8 +11,11 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,26 +23,44 @@ import java.util.stream.Collectors;
 public class PessoaPanel extends JPanel {
 
     private final PessoaService service;
-    private final DefaultTableModel tableModel;
+    private final TipoPessoaService tipoPessoaService;
     private Runnable onVoltar;
+    private Runnable onTipos;
 
     private JTable tabela;
+    private DefaultTableModel tableModel;
+
+    // filtros
+    private JTextField tfBusca;
+    private JComboBox<String> cbStatus;
+    private JComboBox<String> cbFiltroTipo;
+    private JSpinner spIdadeMin, spIdadeMax;
+    private JComboBox<String> cbOrdem;
+    private ActionListener filtroTipoListener;
+    private boolean atualizandoFiltroTipo = false;
+
+    // formulário básico
     private JTextField tfNome, tfDia, tfMes, tfAno, tfCpf, tfTelefone, tfEmail;
     private Integer idSelecionado = null;
 
-    private JTextField tfBusca;
-    private JComboBox<String> cbStatus;
-    private JSpinner spIdadeMin, spIdadeMax;
-    private JComboBox<String> cbOrdem;
+    // tipos
+    private JPanel painelCheckboxesTipos;
+    private List<JCheckBox> checkboxesTipos = new ArrayList<>();
 
-    public PessoaPanel(PessoaService service) {
+    // dados instrutor
+    private JPanel painelInstrutor;
+    private JTextField tfSalario, tfEspecialidades;
+
+    public PessoaPanel(PessoaService service, TipoPessoaService tipoPessoaService) {
         this.service = service;
+        this.tipoPessoaService = tipoPessoaService;
+
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
         add(montarTopBar(), BorderLayout.NORTH);
 
-        String[] colunas = {"ID", "Nome", "CPF", "Idade", "Telefone", "E-mail", "Ativo"};
+        String[] colunas = {"ID", "Nome", "CPF", "Idade", "Telefone", "E-mail", "Tipos", "Ativo"};
         tableModel = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -51,7 +74,7 @@ public class PessoaPanel extends JPanel {
                     boolean isSelected, boolean hasFocus, int row, int col) {
                 Component c = super.getTableCellRendererComponent(t, value, isSelected, hasFocus, row, col);
                 if (!isSelected) {
-                    boolean ativo = "Sim".equals(t.getValueAt(row, 6));
+                    boolean ativo = "Sim".equals(t.getValueAt(row, 7));
                     c.setBackground(ativo ? Color.WHITE : INATIVO);
                 }
                 return c;
@@ -67,16 +90,34 @@ public class PessoaPanel extends JPanel {
         bottomPanel.add(montarBotoes(), BorderLayout.SOUTH);
         add(bottomPanel, BorderLayout.SOUTH);
 
+        atualizarFiltroTipos();
+        atualizarCheckboxesTipos(Collections.emptyList());
         atualizarTabela();
     }
 
     public void setOnVoltar(Runnable r) { this.onVoltar = r; }
+    public void setOnTipos(Runnable r)  { this.onTipos  = r; }
+
+    public void refresh() {
+        atualizarFiltroTipos();
+        atualizarCheckboxesTipos(Collections.emptyList());
+        atualizarTabela();
+    }
+
+    // -------------------------------------------------------------------------
+    // Top bar
+    // -------------------------------------------------------------------------
 
     private JPanel montarTopBar() {
         JPanel topBar = new JPanel(new BorderLayout(8, 4));
 
+        JPanel esquerda = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         JButton btnVoltar = new JButton("← Voltar");
         btnVoltar.addActionListener(e -> { if (onVoltar != null) onVoltar.run(); });
+        JButton btnTipos = new JButton("Tipos de Pessoa");
+        btnTipos.addActionListener(e -> { if (onTipos != null) onTipos.run(); });
+        esquerda.add(btnVoltar);
+        esquerda.add(btnTipos);
 
         JPanel filtros = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
 
@@ -90,6 +131,10 @@ public class PessoaPanel extends JPanel {
         cbStatus = new JComboBox<>(new String[]{"Todos", "Ativos", "Inativos"});
         cbStatus.addActionListener(e -> atualizarTabela());
 
+        cbFiltroTipo = new JComboBox<>();
+        filtroTipoListener = e -> { if (!atualizandoFiltroTipo) atualizarTabela(); };
+        cbFiltroTipo.addActionListener(filtroTipoListener);
+
         spIdadeMin = new JSpinner(new SpinnerNumberModel(0, 0, 150, 1));
         spIdadeMax = new JSpinner(new SpinnerNumberModel(150, 0, 150, 1));
         spIdadeMin.addChangeListener(e -> atualizarTabela());
@@ -100,19 +145,21 @@ public class PessoaPanel extends JPanel {
         cbOrdem = new JComboBox<>(new String[]{"A → Z", "Z → A"});
         cbOrdem.addActionListener(e -> atualizarTabela());
 
-        filtros.add(new JLabel("Buscar:"));   filtros.add(tfBusca);
-        filtros.add(new JLabel("Status:"));   filtros.add(cbStatus);
-        filtros.add(new JLabel("Idade:"));    filtros.add(spIdadeMin);
-        filtros.add(new JLabel("a"));         filtros.add(spIdadeMax);
-        filtros.add(new JLabel("Ordem:"));    filtros.add(cbOrdem);
-
-        JPanel esquerda = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        esquerda.add(btnVoltar);
+        filtros.add(new JLabel("Buscar:"));    filtros.add(tfBusca);
+        filtros.add(new JLabel("Status:"));    filtros.add(cbStatus);
+        filtros.add(new JLabel("Tipo:"));      filtros.add(cbFiltroTipo);
+        filtros.add(new JLabel("Idade:"));     filtros.add(spIdadeMin);
+        filtros.add(new JLabel("a"));          filtros.add(spIdadeMax);
+        filtros.add(new JLabel("Ordem:"));     filtros.add(cbOrdem);
 
         topBar.add(esquerda, BorderLayout.WEST);
         topBar.add(filtros,  BorderLayout.CENTER);
         return topBar;
     }
+
+    // -------------------------------------------------------------------------
+    // Formulário
+    // -------------------------------------------------------------------------
 
     private JPanel montarFormulario() {
         JPanel painel = new JPanel();
@@ -136,10 +183,37 @@ public class PessoaPanel extends JPanel {
         adicionarCampo(painel, "Telefone", tfTelefone);
         adicionarCampo(painel, "E-mail",   tfEmail);
 
+        // seção de tipos (checkboxes)
+        JPanel secaoTipos = new JPanel(new BorderLayout());
+        secaoTipos.setBorder(BorderFactory.createTitledBorder("Tipos de Pessoa"));
+        secaoTipos.setAlignmentX(Component.LEFT_ALIGNMENT);
+        painelCheckboxesTipos = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 2));
+        secaoTipos.add(painelCheckboxesTipos, BorderLayout.CENTER);
+        painel.add(secaoTipos);
+        painel.add(Box.createVerticalStrut(4));
+
+        // seção instrutor (oculta por padrão)
+        painelInstrutor = new JPanel();
+        painelInstrutor.setLayout(new BoxLayout(painelInstrutor, BoxLayout.Y_AXIS));
+        painelInstrutor.setBorder(BorderFactory.createTitledBorder("Dados do Instrutor"));
+        painelInstrutor.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        tfSalario        = new JTextField();
+        tfEspecialidades = new JTextField();
+        adicionarCampoNoPainel(painelInstrutor, "Salário (R$)",    tfSalario);
+        adicionarCampoNoPainel(painelInstrutor, "Especialidades",  tfEspecialidades);
+
+        painelInstrutor.setVisible(false);
+        painel.add(painelInstrutor);
+
         return painel;
     }
 
     private void adicionarCampo(JPanel painel, String label, JTextField campo) {
+        adicionarCampoNoPainel(painel, label, campo);
+    }
+
+    private void adicionarCampoNoPainel(JPanel painel, String label, JTextField campo) {
         JLabel lbl = new JLabel(label);
         lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
         campo.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -163,16 +237,68 @@ public class PessoaPanel extends JPanel {
         painel.add(Box.createVerticalStrut(4));
     }
 
-    private LocalDate lerData() {
-        try {
-            int dia = Integer.parseInt(tfDia.getText().trim());
-            int mes = Integer.parseInt(tfMes.getText().trim());
-            int ano = Integer.parseInt(tfAno.getText().trim());
-            return LocalDate.of(ano, mes, dia);
-        } catch (NumberFormatException | java.time.DateTimeException ex) {
-            throw new IllegalArgumentException("Data inválida. Preencha dia, mês e ano com números válidos.");
+    // -------------------------------------------------------------------------
+    // Checkboxes de tipos
+    // -------------------------------------------------------------------------
+
+    private void atualizarCheckboxesTipos(List<TipoPessoa> selecionados) {
+        painelCheckboxesTipos.removeAll();
+        checkboxesTipos.clear();
+
+        List<TipoPessoa> ativos = tipoPessoaService.listarAtivos();
+        if (ativos.isEmpty()) {
+            painelCheckboxesTipos.add(new JLabel("(nenhum tipo cadastrado)"));
+        } else {
+            for (TipoPessoa tipo : ativos) {
+                JCheckBox cb = new JCheckBox(tipo.getNome());
+                cb.putClientProperty("tipoId", tipo.getId());
+                boolean marcado = selecionados.stream().anyMatch(t -> t.getId() == tipo.getId());
+                cb.setSelected(marcado);
+                cb.addItemListener(e -> atualizarVisibilidadeInstrutor());
+                checkboxesTipos.add(cb);
+                painelCheckboxesTipos.add(cb);
+            }
+        }
+
+        painelCheckboxesTipos.revalidate();
+        painelCheckboxesTipos.repaint();
+        atualizarVisibilidadeInstrutor();
+    }
+
+    private void atualizarVisibilidadeInstrutor() {
+        boolean isInstrutor = checkboxesTipos.stream()
+            .anyMatch(cb -> cb.getText().equalsIgnoreCase("instrutor") && cb.isSelected());
+        if (painelInstrutor.isVisible() != isInstrutor) {
+            painelInstrutor.setVisible(isInstrutor);
+            if (!isInstrutor) {
+                tfSalario.setText("");
+                tfEspecialidades.setText("");
+            }
+            revalidate();
+            repaint();
         }
     }
+
+    private List<TipoPessoa> obterTiposSelecionados() {
+        List<TipoPessoa> selecionados = new ArrayList<>();
+        List<TipoPessoa> ativos = tipoPessoaService.listarAtivos();
+        for (JCheckBox cb : checkboxesTipos) {
+            if (cb.isSelected()) {
+                int tipoId = (int) cb.getClientProperty("tipoId");
+                ativos.stream().filter(t -> t.getId() == tipoId).findFirst().ifPresent(selecionados::add);
+            }
+        }
+        return selecionados;
+    }
+
+    private boolean isInstrutorSelecionado() {
+        return checkboxesTipos.stream()
+            .anyMatch(cb -> cb.getText().equalsIgnoreCase("instrutor") && cb.isSelected());
+    }
+
+    // -------------------------------------------------------------------------
+    // Botões
+    // -------------------------------------------------------------------------
 
     private JPanel montarBotoes() {
         JPanel painel = new JPanel(new GridLayout(1, 4, 8, 0));
@@ -194,14 +320,23 @@ public class PessoaPanel extends JPanel {
         return painel;
     }
 
+    // -------------------------------------------------------------------------
+    // Ações
+    // -------------------------------------------------------------------------
+
     private void acaoCriar() {
         try {
-            service.cadastrar(
+            List<TipoPessoa> tipos = obterTiposSelecionados();
+            Pessoa criada = service.cadastrar(
                 tfNome.getText().trim(), lerData(),
                 tfCpf.getText().trim(),
                 tfTelefone.getText().trim(),
-                tfEmail.getText().trim()
+                tfEmail.getText().trim(),
+                tipos
             );
+            if (isInstrutorSelecionado()) {
+                service.salvarDadosInstrutor(criada.getId(), lerSalario(), tfEspecialidades.getText().trim());
+            }
             limparFormulario();
             atualizarTabela();
         } catch (IllegalArgumentException ex) {
@@ -211,16 +346,20 @@ public class PessoaPanel extends JPanel {
 
     private void acaoEditar() {
         if (idSelecionado == null) {
-            JOptionPane.showMessageDialog(this,
-                "Selecione uma pessoa na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Selecione uma pessoa na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
         try {
+            List<TipoPessoa> tipos = obterTiposSelecionados();
             service.editar(idSelecionado,
                 tfNome.getText().trim(), lerData(),
                 tfTelefone.getText().trim(),
-                tfEmail.getText().trim()
+                tfEmail.getText().trim(),
+                tipos
             );
+            if (isInstrutorSelecionado()) {
+                service.salvarDadosInstrutor(idSelecionado, lerSalario(), tfEspecialidades.getText().trim());
+            }
             limparFormulario();
             atualizarTabela();
         } catch (IllegalArgumentException ex) {
@@ -230,8 +369,7 @@ public class PessoaPanel extends JPanel {
 
     private void acaoDesativar() {
         if (idSelecionado == null) {
-            JOptionPane.showMessageDialog(this,
-                "Selecione uma pessoa na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Selecione uma pessoa na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
         service.desativar(idSelecionado);
@@ -241,8 +379,7 @@ public class PessoaPanel extends JPanel {
 
     private void acaoExcluir() {
         if (idSelecionado == null) {
-            JOptionPane.showMessageDialog(this,
-                "Selecione uma pessoa na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Selecione uma pessoa na tabela.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
         int confirm = JOptionPane.showConfirmDialog(this,
@@ -253,6 +390,10 @@ public class PessoaPanel extends JPanel {
             atualizarTabela();
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Formulário: popular, limpar, helpers
+    // -------------------------------------------------------------------------
 
     private void popularFormulario() {
         int row = tabela.getSelectedRow();
@@ -269,22 +410,66 @@ public class PessoaPanel extends JPanel {
                 tfCpf.setText(p.getCpf());
                 tfTelefone.setText(p.getTelefone());
                 tfEmail.setText(p.getEmail());
+                atualizarCheckboxesTipos(p.getTipos());
+                if (painelInstrutor.isVisible()) {
+                    service.buscarDadosInstrutor(idSelecionado).ifPresent(d -> {
+                        tfSalario.setText(String.format("%.2f", d.getSalario()).replace(",", "."));
+                        tfEspecialidades.setText(d.getEspecialidades());
+                    });
+                }
             });
     }
 
     private void limparFormulario() {
         idSelecionado = null;
         tabela.clearSelection();
-        tfNome.setText(""); tfDia.setText(""); tfMes.setText(""); tfAno.setText(""); tfCpf.setText("");
-        tfTelefone.setText(""); tfEmail.setText("");
+        tfNome.setText(""); tfDia.setText(""); tfMes.setText(""); tfAno.setText("");
+        tfCpf.setText(""); tfTelefone.setText(""); tfEmail.setText("");
+        tfSalario.setText(""); tfEspecialidades.setText("");
+        atualizarCheckboxesTipos(Collections.emptyList());
+    }
+
+    private LocalDate lerData() {
+        try {
+            int dia = Integer.parseInt(tfDia.getText().trim());
+            int mes = Integer.parseInt(tfMes.getText().trim());
+            int ano = Integer.parseInt(tfAno.getText().trim());
+            return LocalDate.of(ano, mes, dia);
+        } catch (NumberFormatException | java.time.DateTimeException ex) {
+            throw new IllegalArgumentException("Data inválida. Preencha dia, mês e ano com números válidos.");
+        }
+    }
+
+    private double lerSalario() {
+        try {
+            return Double.parseDouble(tfSalario.getText().trim().replace(",", "."));
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Salário inválido. Use apenas números (ex: 1500.00).");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Tabela e filtros
+    // -------------------------------------------------------------------------
+
+    private void atualizarFiltroTipos() {
+        if (cbFiltroTipo == null) return;
+        atualizandoFiltroTipo = true;
+        String atual = (String) cbFiltroTipo.getSelectedItem();
+        cbFiltroTipo.removeAllItems();
+        cbFiltroTipo.addItem("Todos os tipos");
+        tipoPessoaService.listar().forEach(t -> cbFiltroTipo.addItem(t.getNome()));
+        cbFiltroTipo.setSelectedItem(atual);
+        atualizandoFiltroTipo = false;
     }
 
     private void atualizarTabela() {
-        String busca    = tfBusca  != null ? tfBusca.getText().trim().toLowerCase() : "";
-        String status   = cbStatus != null ? (String) cbStatus.getSelectedItem()    : "Todos";
-        int    idadeMin = spIdadeMin != null ? (int) spIdadeMin.getValue()           : 0;
-        int    idadeMax = spIdadeMax != null ? (int) spIdadeMax.getValue()           : 150;
-        boolean reverso = cbOrdem  != null && "Z → A".equals(cbOrdem.getSelectedItem());
+        String busca      = tfBusca     != null ? tfBusca.getText().trim().toLowerCase()       : "";
+        String status     = cbStatus    != null ? (String) cbStatus.getSelectedItem()           : "Todos";
+        String filtroTipo = cbFiltroTipo != null ? (String) cbFiltroTipo.getSelectedItem()      : "Todos os tipos";
+        int    idadeMin   = spIdadeMin  != null ? (int) spIdadeMin.getValue()                   : 0;
+        int    idadeMax   = spIdadeMax  != null ? (int) spIdadeMax.getValue()                   : 150;
+        boolean reverso   = cbOrdem     != null && "Z → A".equals(cbOrdem.getSelectedItem());
 
         List<Pessoa> pessoas = service.listar().stream()
             .filter(p -> busca.isEmpty() || p.getNome().toLowerCase().contains(busca))
@@ -292,6 +477,10 @@ public class PessoaPanel extends JPanel {
                 if ("Ativos".equals(status))   return p.isAtivo();
                 if ("Inativos".equals(status)) return !p.isAtivo();
                 return true;
+            })
+            .filter(p -> {
+                if (filtroTipo == null || "Todos os tipos".equals(filtroTipo)) return true;
+                return p.getTipos().stream().anyMatch(t -> t.getNome().equals(filtroTipo));
             })
             .filter(p -> {
                 int idade = Period.between(p.getDataDeNascimento(), LocalDate.now()).getYears();
@@ -304,10 +493,11 @@ public class PessoaPanel extends JPanel {
 
         tableModel.setRowCount(0);
         for (Pessoa p : pessoas) {
-            int idade = Period.between(p.getDataDeNascimento(), LocalDate.now()).getYears();
+            int    idade = Period.between(p.getDataDeNascimento(), LocalDate.now()).getYears();
+            String tipos = p.getTipos().stream().map(TipoPessoa::getNome).collect(Collectors.joining(", "));
             tableModel.addRow(new Object[]{
                 p.getId(), p.getNome(), p.getCpf(), idade,
-                p.getTelefone(), p.getEmail(), p.isAtivo() ? "Sim" : "Não"
+                p.getTelefone(), p.getEmail(), tipos, p.isAtivo() ? "Sim" : "Não"
             });
         }
     }

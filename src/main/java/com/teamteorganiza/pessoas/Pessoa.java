@@ -1,6 +1,8 @@
 package com.teamteorganiza.pessoas;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Pessoa {
 
@@ -12,6 +14,7 @@ public class Pessoa {
     private String telefone;
     private String email;
     private boolean ativo;
+    private List<TipoPessoa> tipos = new ArrayList<>();
 
     public Pessoa(String nome, LocalDate nascimento, String cpf, String telefone, String email, boolean ativo) {
         this.id = ++idCounter;
@@ -41,4 +44,7 @@ public class Pessoa {
 
     public boolean isAtivo() { return ativo; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
+
+    public List<TipoPessoa> getTipos() { return tipos; }
+    public void setTipos(List<TipoPessoa> tipos) { this.tipos = tipos != null ? tipos : new ArrayList<>(); }
 }
