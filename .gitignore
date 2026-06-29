@@ -30,3 +30,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Credenciais — não commitar
+src/main/java/com/teamteorganiza/infra/SupabaseConfig.java
