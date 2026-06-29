@@ -5,8 +5,7 @@ import com.teamteorganiza.estoque.model.Produto;
 
 import java.util.Optional;
 
-public interface EstoqueRepository extends Repository<Produto, Integer> {
+public interface EstoqueRepository extends Repository<Produto, String> {
 
-    /** Busca um produto pelo nome (case-insensitive) — útil para evitar duplicatas. */
     Optional<Produto> buscarPorNome(String nome);
 }

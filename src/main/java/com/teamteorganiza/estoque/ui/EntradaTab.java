@@ -75,9 +75,9 @@ public class EntradaTab extends JPanel {
         if (selecionado != null) reselecionar(selecionado.getId());
     }
 
-    private void reselecionar(int produtoId) {
+    private void reselecionar(String produtoId) {
         for (int i = 0; i < cbProduto.getItemCount(); i++) {
-            if (cbProduto.getItemAt(i).getId() == produtoId) {
+            if (cbProduto.getItemAt(i).getId().equals(produtoId)) {
                 cbProduto.setSelectedIndex(i);
                 return;
             }

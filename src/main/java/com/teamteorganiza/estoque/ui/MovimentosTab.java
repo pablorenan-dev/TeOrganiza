@@ -36,7 +36,7 @@ public class MovimentosTab extends JPanel {
     }
 
     public void recarregar() {
-        Map<Integer, String> nomes = new HashMap<>();
+        Map<String, String> nomes = new HashMap<>();
         for (Produto p : service.listar()) {
             nomes.put(p.getId(), p.getNome());
         }

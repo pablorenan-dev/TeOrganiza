@@ -3,21 +3,14 @@ package com.teamteorganiza.eventos.model;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-/**
- * Um compromisso/evento do CTG (baile, rodeio, ensaio de invernada, etc.).
- *
- * O armazenamento fica a cargo do CompromissoRepository — a entidade só carrega
- * os dados, no mesmo padrão de Pessoa e Produto.
- */
 public class Compromisso {
 
-    private static int contadorId = 0;
-
-    private int id;
+    private final String id;
     private String titulo;
     private TipoCompromisso tipo;
-    private String categoria;       // antes "invernada"; vale para qualquer tipo
+    private String categoria;
     private LocalDate data;
     private String horario;
     private String local;
@@ -29,7 +22,7 @@ public class Compromisso {
 
     public Compromisso(String titulo, TipoCompromisso tipo, String categoria, LocalDate data,
                        String horario, String local, String responsavel, String descricao) {
-        this.id = ++contadorId;
+        this.id = UUID.randomUUID().toString();
         this.titulo = titulo;
         this.tipo = tipo;
         this.categoria = categoria;
@@ -40,7 +33,20 @@ public class Compromisso {
         this.descricao = descricao;
     }
 
-    public int getId() { return id; }
+    public Compromisso(String id, String titulo, TipoCompromisso tipo, String categoria, LocalDate data,
+                       String horario, String local, String responsavel, String descricao) {
+        this.id = id;
+        this.titulo = titulo;
+        this.tipo = tipo;
+        this.categoria = categoria;
+        this.data = data;
+        this.horario = horario;
+        this.local = local;
+        this.responsavel = responsavel;
+        this.descricao = descricao;
+    }
+
+    public String getId() { return id; }
 
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
@@ -66,14 +72,13 @@ public class Compromisso {
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
 
-    // Listas de apoio (ainda sem tela própria) — mantidas para uso futuro.
     public List<String> getParticipantes() { return participantes; }
     public List<String> getCaronas() { return caronas; }
 
     @Override
     public String toString() {
         String cat = (categoria != null && !categoria.isEmpty()) ? " | Categoria: " + categoria : "";
-        return String.format("[%d] %s (%s)%s - Data: %s | Local: %s | Resp: %s",
-                id, titulo, tipo, cat, data, local, responsavel);
+        return String.format("%s (%s)%s - Data: %s | Local: %s | Resp: %s",
+                titulo, tipo, cat, data, local, responsavel);
     }
 }

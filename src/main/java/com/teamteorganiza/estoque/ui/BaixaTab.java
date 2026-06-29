@@ -86,7 +86,7 @@ public class BaixaTab extends JPanel {
         }
         if (selecionado != null) {
             for (int i = 0; i < cbProduto.getItemCount(); i++) {
-                if (cbProduto.getItemAt(i).getId() == selecionado.getId()) {
+                if (cbProduto.getItemAt(i).getId().equals(selecionado.getId())) {
                     cbProduto.setSelectedIndex(i);
                     break;
                 }

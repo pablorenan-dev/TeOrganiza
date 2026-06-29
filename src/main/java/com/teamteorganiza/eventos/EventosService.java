@@ -6,10 +6,6 @@ import com.teamteorganiza.eventos.model.TipoCompromisso;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Regras de negócio do módulo de Eventos. Recebe o repositório no construtor e
- * valida com {@link IllegalArgumentException}, no mesmo padrão dos outros módulos.
- */
 public class EventosService {
 
     private final CompromissoRepository repositorio;
@@ -30,7 +26,7 @@ public class EventosService {
         return repositorio.listarTodos();
     }
 
-    public void editar(int id, String titulo, TipoCompromisso tipo, String categoria, LocalDate data,
+    public void editar(String id, String titulo, TipoCompromisso tipo, String categoria, LocalDate data,
                        String horario, String local, String responsavel, String descricao) {
         validar(titulo, tipo, data);
         repositorio.buscarPorId(id).ifPresent(c -> {
@@ -42,22 +38,20 @@ public class EventosService {
             c.setLocal(local);
             c.setResponsavel(responsavel);
             c.setDescricao(descricao);
+            repositorio.salvar(c);
         });
     }
 
-    public void remover(int id) {
+    public void remover(String id) {
         repositorio.remover(id);
     }
 
     private void validar(String titulo, TipoCompromisso tipo, LocalDate data) {
-        if (titulo == null || titulo.isBlank()) {
+        if (titulo == null || titulo.isBlank())
             throw new IllegalArgumentException("Título é obrigatório.");
-        }
-        if (tipo == null) {
+        if (tipo == null)
             throw new IllegalArgumentException("Tipo é obrigatório.");
-        }
-        if (data == null) {
+        if (data == null)
             throw new IllegalArgumentException("Data é obrigatória.");
-        }
     }
 }

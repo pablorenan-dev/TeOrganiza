@@ -12,12 +12,13 @@ public class EstoqueRepositoryEmMemoria implements EstoqueRepository {
 
     @Override
     public void salvar(Produto produto) {
+        produtos.removeIf(p -> p.getId().equals(produto.getId()));
         produtos.add(produto);
     }
 
     @Override
-    public Optional<Produto> buscarPorId(Integer id) {
-        return produtos.stream().filter(p -> p.getId() == id).findFirst();
+    public Optional<Produto> buscarPorId(String id) {
+        return produtos.stream().filter(p -> p.getId().equals(id)).findFirst();
     }
 
     @Override
@@ -31,7 +32,7 @@ public class EstoqueRepositoryEmMemoria implements EstoqueRepository {
     }
 
     @Override
-    public void remover(Integer id) {
-        produtos.removeIf(p -> p.getId() == id);
+    public void remover(String id) {
+        produtos.removeIf(p -> p.getId().equals(id));
     }
 }

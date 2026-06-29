@@ -12,12 +12,13 @@ public class CompromissoRepositoryEmMemoria implements CompromissoRepository {
 
     @Override
     public void salvar(Compromisso compromisso) {
+        compromissos.removeIf(c -> c.getId().equals(compromisso.getId()));
         compromissos.add(compromisso);
     }
 
     @Override
-    public Optional<Compromisso> buscarPorId(Integer id) {
-        return compromissos.stream().filter(c -> c.getId() == id).findFirst();
+    public Optional<Compromisso> buscarPorId(String id) {
+        return compromissos.stream().filter(c -> c.getId().equals(id)).findFirst();
     }
 
     @Override
@@ -26,7 +27,7 @@ public class CompromissoRepositoryEmMemoria implements CompromissoRepository {
     }
 
     @Override
-    public void remover(Integer id) {
-        compromissos.removeIf(c -> c.getId() == id);
+    public void remover(String id) {
+        compromissos.removeIf(c -> c.getId().equals(id));
     }
 }

@@ -1,30 +1,21 @@
 package com.teamteorganiza.estoque.model;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
-/**
- * Registro histórico de uma entrada ou baixa de estoque.
- * Funciona como um "extrato" do estoque, no mesmo espírito das
- * MovimentacaoFinanceira do módulo Financeiro.
- *
- * {@code custoUnitario} só é relevante em movimentos de ENTRADA (preço pago na
- * compra); nas baixas fica 0.
- */
 public class MovimentoEstoque {
 
-    private static int idCounter = 0;
-
-    private int id;
-    private int produtoId;
-    private TipoMovimentoEstoque tipo;
-    private double quantidade;
-    private double custoUnitario;   // usado apenas em ENTRADA
-    private LocalDate data;
+    private final String id;
+    private final String produtoId;
+    private final TipoMovimentoEstoque tipo;
+    private final double quantidade;
+    private final double custoUnitario;
+    private final LocalDate data;
     private String observacao;
 
-    public MovimentoEstoque(int produtoId, TipoMovimentoEstoque tipo, double quantidade,
+    public MovimentoEstoque(String produtoId, TipoMovimentoEstoque tipo, double quantidade,
                             double custoUnitario, String observacao) {
-        this.id = ++idCounter;
+        this.id = UUID.randomUUID().toString();
         this.produtoId = produtoId;
         this.tipo = tipo;
         this.quantidade = quantidade;
@@ -33,8 +24,19 @@ public class MovimentoEstoque {
         this.observacao = observacao;
     }
 
-    public int getId() { return id; }
-    public int getProdutoId() { return produtoId; }
+    public MovimentoEstoque(String id, String produtoId, TipoMovimentoEstoque tipo, double quantidade,
+                            double custoUnitario, LocalDate data, String observacao) {
+        this.id = id;
+        this.produtoId = produtoId;
+        this.tipo = tipo;
+        this.quantidade = quantidade;
+        this.custoUnitario = custoUnitario;
+        this.data = data;
+        this.observacao = observacao;
+    }
+
+    public String getId() { return id; }
+    public String getProdutoId() { return produtoId; }
     public TipoMovimentoEstoque getTipo() { return tipo; }
     public double getQuantidade() { return quantidade; }
     public double getCustoUnitario() { return custoUnitario; }
@@ -46,7 +48,6 @@ public class MovimentoEstoque {
     @Override
     public String toString() {
         String sinal = tipo.isBaixa() ? "-" : "+";
-        return String.format("#%d | produto %d | %s | %s%.2f | %s",
-                id, produtoId, tipo, sinal, quantidade, data);
+        return String.format("produto %s | %s | %s%.2f | %s", produtoId, tipo, sinal, quantidade, data);
     }
 }

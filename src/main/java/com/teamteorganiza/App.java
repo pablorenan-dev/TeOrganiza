@@ -1,10 +1,10 @@
 package com.teamteorganiza;
 
 import com.teamteorganiza.auth.LoginDialog;
-import com.teamteorganiza.estoque.EstoqueRepositoryEmMemoria;
+import com.teamteorganiza.estoque.EstoqueRepositorySupabase;
 import com.teamteorganiza.estoque.EstoqueService;
 import com.teamteorganiza.estoque.ui.EstoquePanel;
-import com.teamteorganiza.eventos.CompromissoRepositoryEmMemoria;
+import com.teamteorganiza.eventos.CompromissoRepositorySupabase;
 import com.teamteorganiza.eventos.EventosService;
 import com.teamteorganiza.eventos.ui.EventosPanel;
 import com.teamteorganiza.financeiro.FinanceiroService;
@@ -54,10 +54,10 @@ public class App {
                 new MensalidadeRepositorySupabase()
             );
             EstoqueService estoqueService = new EstoqueService(
-                new EstoqueRepositoryEmMemoria()
+                new EstoqueRepositorySupabase()
             );
             EventosService eventosService = new EventosService(
-                new CompromissoRepositoryEmMemoria()
+                new CompromissoRepositorySupabase()
             );
 
             JPanel root = new JPanel(new CardLayout());
