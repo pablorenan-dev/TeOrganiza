@@ -91,7 +91,7 @@ public class ProdutosTab extends JPanel {
         try {
             service.cadastrarProduto(tfNome.getText().trim(), tfCategoria.getText().trim(),
                     (UnidadeMedida) cbUnidade.getSelectedItem(), minimo, preco);
-        } catch (IllegalArgumentException ex) {
+        } catch (RuntimeException ex) {
             aviso(ex.getMessage());
             return;
         }
@@ -109,7 +109,7 @@ public class ProdutosTab extends JPanel {
         try {
             service.editarProduto(linhas.get(row).getId(), tfNome.getText().trim(),
                     tfCategoria.getText().trim(), (UnidadeMedida) cbUnidade.getSelectedItem(), minimo, preco);
-        } catch (IllegalArgumentException ex) {
+        } catch (RuntimeException ex) {
             aviso(ex.getMessage());
             return;
         }
@@ -120,7 +120,12 @@ public class ProdutosTab extends JPanel {
     private void deletar() {
         int row = tabela.getSelectedRow();
         if (row < 0) { aviso("Selecione um produto para deletar."); return; }
-        service.removerProduto(linhas.get(row).getId());
+        try {
+            service.removerProduto(linhas.get(row).getId());
+        } catch (RuntimeException ex) {
+            aviso(ex.getMessage());
+            return;
+        }
         limpar();
         onChange.run();
     }
