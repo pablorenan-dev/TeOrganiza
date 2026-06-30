@@ -1,5 +1,8 @@
 package com.teamteorganiza.financeiro;
 
+import com.teamteorganiza.estoque.EstoqueService;
+import com.teamteorganiza.estoque.model.Produto;
+import com.teamteorganiza.estoque.model.TipoMovimentoEstoque;
 import com.teamteorganiza.financeiro.model.*;
 
 import java.time.LocalDate;
@@ -13,13 +16,16 @@ public class FinanceiroService {
 
     private final MensalidadeRepository mensalidadeRepo;
     private final MovimentacaoFinanceiraRepository movimentacaoRepo;
+    private final EstoqueService estoqueService;
     private final List<MovimentacaoFinanceira> movimentacoes;
     private final List<Vaquinha> vaquinhas = new ArrayList<>();
     private final CaixaEvento caixa = new CaixaEvento("Evento 1");
 
-    public FinanceiroService(MensalidadeRepository mensalidadeRepo, MovimentacaoFinanceiraRepository movimentacaoRepo) {
+    public FinanceiroService(MensalidadeRepository mensalidadeRepo, MovimentacaoFinanceiraRepository movimentacaoRepo,
+                             EstoqueService estoqueService) {
         this.mensalidadeRepo = mensalidadeRepo;
         this.movimentacaoRepo = movimentacaoRepo;
+        this.estoqueService = estoqueService;
         this.movimentacoes = new ArrayList<>(movimentacaoRepo.listarTodos());
     }
 
@@ -99,22 +105,52 @@ public class FinanceiroService {
     public String getNomeEvento() { return caixa.getNomeEvento(); }
     public void setNomeEvento(String nome) { caixa.setNomeEvento(nome); }
 
-    public VendaCaixa registrarVenda(String pessoaId, String descricao, double valor) {
-        return caixa.registrarVenda(pessoaId, descricao, valor);
+    public VendaCaixa registrarVenda(String pessoaId, String produtoId, double quantidade, String vendedorNome) {
+        Produto produto = estoqueService.buscarProduto(produtoId);
+        // Dá baixa primeiro: se faltar estoque, lança e a venda não é registrada.
+        estoqueService.darBaixa(produtoId, quantidade, TipoMovimentoEstoque.BAIXA_VENDA,
+                "Venda no caixa: " + caixa.getNomeEvento());
+        double valor = produto.getPrecoVenda() * quantidade;
+        return caixa.registrarVenda(pessoaId, produtoId, quantidade, vendedorNome, produto.getNome(), valor);
     }
 
-    public void editarVenda(String id, String pessoaId, String descricao, double valor) {
+    public void editarVenda(String id, String pessoaId, String produtoId, double quantidade, String vendedorNome) {
+        VendaCaixa venda = null;
+        for (VendaCaixa v : caixa.getVendas()) {
+            if (v.getId().equals(id)) { venda = v; break; }
+        }
+        if (venda == null) return;
+
+        Produto produto = estoqueService.buscarProduto(produtoId);
+        // Ajusta o estoque dando baixa antes de estornar, para abortar sem efeito se faltar estoque.
+        if (produtoId.equals(venda.getProdutoId())) {
+            double delta = quantidade - venda.getQuantidade();
+            if (delta > 0) estoqueService.darBaixa(produtoId, delta, TipoMovimentoEstoque.BAIXA_VENDA,
+                    "Ajuste de venda no caixa: " + caixa.getNomeEvento());
+            else if (delta < 0) estoqueService.reporEstoque(produtoId, -delta);
+        } else {
+            estoqueService.darBaixa(produtoId, quantidade, TipoMovimentoEstoque.BAIXA_VENDA,
+                    "Venda no caixa (edição): " + caixa.getNomeEvento());
+            estoqueService.reporEstoque(venda.getProdutoId(), venda.getQuantidade());
+        }
+
+        venda.setPessoaId(pessoaId);
+        venda.setProdutoId(produtoId);
+        venda.setQuantidade(quantidade);
+        venda.setVendedorNome(vendedorNome);
+        venda.setDescricao(produto.getNome());
+        venda.setValor(produto.getPrecoVenda() * quantidade);
+    }
+
+    public void removerVenda(String id) {
         for (VendaCaixa v : caixa.getVendas()) {
             if (v.getId().equals(id)) {
-                v.setPessoaId(pessoaId);
-                v.setDescricao(descricao);
-                v.setValor(valor);
-                return;
+                estoqueService.reporEstoque(v.getProdutoId(), v.getQuantidade());
+                break;
             }
         }
+        caixa.removerVenda(id);
     }
-
-    public void removerVenda(String id) { caixa.removerVenda(id); }
 
     public void fecharCaixa(String nomeNovoEvento) {
         double total = caixa.total();

@@ -11,19 +11,22 @@ public class Produto {
     private double quantidade;
     private double estoqueMinimo;
     private double custoMedio;
+    private double precoVenda;
 
-    public Produto(String nome, String categoria, UnidadeMedida unidade, double estoqueMinimo) {
+    public Produto(String nome, String categoria, UnidadeMedida unidade, double estoqueMinimo,
+                   double precoVenda) {
         this.id = UUID.randomUUID().toString();
         this.nome = nome;
         this.categoria = categoria;
         this.unidade = unidade;
         this.estoqueMinimo = estoqueMinimo;
+        this.precoVenda = precoVenda;
         this.quantidade = 0;
         this.custoMedio = 0;
     }
 
     public Produto(String id, String nome, String categoria, UnidadeMedida unidade,
-                   double quantidade, double estoqueMinimo, double custoMedio) {
+                   double quantidade, double estoqueMinimo, double custoMedio, double precoVenda) {
         this.id = id;
         this.nome = nome;
         this.categoria = categoria;
@@ -31,6 +34,7 @@ public class Produto {
         this.quantidade = quantidade;
         this.estoqueMinimo = estoqueMinimo;
         this.custoMedio = custoMedio;
+        this.precoVenda = precoVenda;
     }
 
     public String getId() { return id; }
@@ -53,13 +57,16 @@ public class Produto {
     public double getCustoMedio() { return custoMedio; }
     public void setCustoMedio(double custoMedio) { this.custoMedio = custoMedio; }
 
+    public double getPrecoVenda() { return precoVenda; }
+    public void setPrecoVenda(double precoVenda) { this.precoVenda = precoVenda; }
+
     public boolean abaixoDoMinimo() { return quantidade <= estoqueMinimo; }
 
     public double valorEmEstoque() { return quantidade * custoMedio; }
 
     @Override
     public String toString() {
-        return String.format("%s [%s] | qtd: %.2f %s | mín: %.2f | custo médio: R$ %.2f",
-                nome, categoria, quantidade, unidade, estoqueMinimo, custoMedio);
+        return String.format("%s [%s] | qtd: %.2f %s | mín: %.2f | custo médio: R$ %.2f | preço: R$ %.2f",
+                nome, categoria, quantidade, unidade, estoqueMinimo, custoMedio, precoVenda);
     }
 }

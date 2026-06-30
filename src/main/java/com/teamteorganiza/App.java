@@ -51,12 +51,13 @@ public class App {
             TipoPessoaService tipoPessoaService = new TipoPessoaService(
                 new TipoPessoaRepositorySupabase()
             );
-            FinanceiroService financeiroService = new FinanceiroService(
-                new MensalidadeRepositorySupabase(),
-                new MovimentacaoFinanceiraRepositorySupabase()
-            );
             EstoqueService estoqueService = new EstoqueService(
                 new EstoqueRepositorySupabase()
+            );
+            FinanceiroService financeiroService = new FinanceiroService(
+                new MensalidadeRepositorySupabase(),
+                new MovimentacaoFinanceiraRepositorySupabase(),
+                estoqueService
             );
             EventosService eventosService = new EventosService(
                 new CompromissoRepositorySupabase()
@@ -68,7 +69,7 @@ public class App {
             HomePanel       homePanel       = new HomePanel();
             PessoaPanel     pessoaPanel     = new PessoaPanel(pessoaService, tipoPessoaService);
             TipoPessoaPanel tipoPessoaPanel = new TipoPessoaPanel(tipoPessoaService, pessoaService);
-            FinanceiroPanel financeiroPanel = new FinanceiroPanel(financeiroService, pessoaService);
+            FinanceiroPanel financeiroPanel = new FinanceiroPanel(financeiroService, pessoaService, estoqueService);
             EstoquePanel    estoquePanel    = new EstoquePanel(estoqueService);
             EventosPanel    eventosPanel    = new EventosPanel(eventosService);
 
