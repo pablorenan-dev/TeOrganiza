@@ -9,16 +9,21 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-public class LoginDialog extends JDialog {
+public class 
+LoginDialog extends JDialog {
 
     private boolean logado = false;
 
     public LoginDialog(Frame parent) {
         super(parent, "TeOrganiza — Login", true);
         setLayout(new BorderLayout(12, 12));
-        setSize(380, 250);
+        setSize(380, 320);
         setLocationRelativeTo(parent);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+
+        JLabel lblTitulo = new JLabel("TeOrganiza Login", SwingConstants.CENTER);
+        lblTitulo.setFont(lblTitulo.getFont().deriveFont(Font.BOLD, 26f));
+        lblTitulo.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
 
         JPanel campos = new JPanel(new GridLayout(4, 1, 4, 6));
         campos.setBorder(BorderFactory.createEmptyBorder(20, 28, 8, 28));
@@ -48,6 +53,7 @@ public class LoginDialog extends JDialog {
         btnEntrar.addActionListener(e    -> entrar(tfEmail, tfSenha, lblErro, btnEntrar, btnCadastrar));
         btnCadastrar.addActionListener(e -> cadastrar(lblErro));
 
+        add(lblTitulo, BorderLayout.NORTH);
         add(campos, BorderLayout.CENTER);
         add(rodape, BorderLayout.SOUTH);
         getRootPane().setDefaultButton(btnEntrar);
