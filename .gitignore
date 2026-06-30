@@ -33,3 +33,4 @@ Thumbs.db
 
 # Credenciais — não commitar
 src/main/java/com/teamteorganiza/infra/SupabaseConfig.java
+/docs
