@@ -2,6 +2,8 @@ package com.teamteorganiza.financeiro.ui;
 
 import com.teamteorganiza.financeiro.FinanceiroService;
 import com.teamteorganiza.financeiro.model.VendaCaixa;
+import com.teamteorganiza.pessoas.Pessoa;
+import com.teamteorganiza.pessoas.PessoaService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -12,6 +14,7 @@ import java.util.function.Function;
 public class CaixaTab extends JPanel {
 
     private final FinanceiroService service;
+    private final PessoaService pessoaService;
     private final Function<String, String> nomeResolver;
     private final Runnable onChange;
 
@@ -19,23 +22,27 @@ public class CaixaTab extends JPanel {
     private final JLabel lblTotal = new JLabel();
     private final DefaultTableModel tableModel;
     private final JTable tabela;
-    private final JTextField tfId = new JTextField(24);
-    private final JTextArea taDescricao = new JTextArea(3, 24);
+    private final JComboBox<Pessoa> comboPessoa = new JComboBox<>();
+    private final JTextField tfDescricao = new JTextField(24);
     private final JTextField tfValor = new JTextField(10);
 
     private List<VendaCaixa> linhas = List.of();
 
-    public CaixaTab(FinanceiroService service, Function<String, String> nomeResolver, Runnable onChange) {
+    public CaixaTab(FinanceiroService service, PessoaService pessoaService,
+                    Function<String, String> nomeResolver, Runnable onChange) {
         this.service = service;
+        this.pessoaService = pessoaService;
         this.nomeResolver = nomeResolver;
         this.onChange = onChange;
 
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
+        comboPessoa.setRenderer(new PessoaRenderer());
+
         add(montarTopo(), BorderLayout.NORTH);
 
-        String[] colunas = {"ID Pessoa", "Nome", "Valor", "Descrição"};
+        String[] colunas = {"Nome", "Valor", "Descrição"};
         tableModel = new DefaultTableModel(colunas, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
@@ -83,25 +90,21 @@ public class CaixaTab extends JPanel {
         c.insets = new Insets(4, 4, 4, 4);
         c.anchor = GridBagConstraints.WEST;
 
-        taDescricao.setLineWrap(true);
-        taDescricao.setWrapStyleWord(true);
+        c.gridx = 0; c.gridy = 0; painel.add(new JLabel("Pessoa:"), c);
+        c.gridx = 1; c.gridy = 0; c.fill = GridBagConstraints.HORIZONTAL; painel.add(comboPessoa, c);
+        c.fill = GridBagConstraints.NONE;
 
-        c.gridx = 0; c.gridy = 0; painel.add(new JLabel("ID (pessoa):"), c);
-        c.gridx = 1; c.gridy = 0; painel.add(tfId, c);
+        c.gridx = 0; c.gridy = 1; painel.add(new JLabel("Descrição:"), c);
+        c.gridx = 1; c.gridy = 1; painel.add(tfDescricao, c);
 
-        c.gridx = 0; c.gridy = 1; c.anchor = GridBagConstraints.NORTHWEST;
-        painel.add(new JLabel("Descrição:"), c);
-        c.gridx = 1; c.gridy = 1; painel.add(new JScrollPane(taDescricao), c);
-        c.anchor = GridBagConstraints.WEST;
-
-        c.gridx = 0; c.gridy = 2; painel.add(new JLabel("Valor:"), c);
+        c.gridx = 0; c.gridy = 2; painel.add(new JLabel("Valor (R$):"), c);
         c.gridx = 1; c.gridy = 2; painel.add(tfValor, c);
 
         JPanel botoes = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        JButton btnCriar = new JButton("Criar");
-        JButton btnEditar = new JButton("Editar");
+        JButton btnCriar   = new JButton("Criar");
+        JButton btnEditar  = new JButton("Editar");
         JButton btnDeletar = new JButton("Deletar");
-        JButton btnLimpar = new JButton("Limpar");
+        JButton btnLimpar  = new JButton("Limpar");
         botoes.add(btnCriar); botoes.add(btnEditar); botoes.add(btnDeletar); botoes.add(btnLimpar);
         c.gridx = 1; c.gridy = 3; painel.add(botoes, c);
 
@@ -114,10 +117,10 @@ public class CaixaTab extends JPanel {
     }
 
     private void criar() {
-        String id = lerId();
+        String pessoaId = lerPessoaId();
         Double valor = lerValor();
-        if (id == null || valor == null) return;
-        service.registrarVenda(id, taDescricao.getText().trim(), valor);
+        if (valor == null) return;
+        service.registrarVenda(pessoaId, tfDescricao.getText().trim(), valor);
         limpar();
         onChange.run();
     }
@@ -125,10 +128,10 @@ public class CaixaTab extends JPanel {
     private void editar() {
         int row = tabela.getSelectedRow();
         if (row < 0) { aviso("Selecione uma venda para editar."); return; }
-        String id = lerId();
+        String pessoaId = lerPessoaId();
         Double valor = lerValor();
-        if (id == null || valor == null) return;
-        service.editarVenda(linhas.get(row).getId(), id, taDescricao.getText().trim(), valor);
+        if (valor == null) return;
+        service.editarVenda(linhas.get(row).getId(), pessoaId, tfDescricao.getText().trim(), valor);
         limpar();
         onChange.run();
     }
@@ -159,25 +162,25 @@ public class CaixaTab extends JPanel {
         int row = tabela.getSelectedRow();
         if (row < 0 || row >= linhas.size()) return;
         VendaCaixa v = linhas.get(row);
-        tfId.setText(v.getPessoaId());
-        taDescricao.setText(v.getDescricao());
+        selecionarNoComboPessoa(v.getPessoaId());
+        tfDescricao.setText(v.getDescricao());
         tfValor.setText(String.format("%.2f", v.getValor()));
     }
 
     private void limpar() {
-        tfId.setText("");
-        taDescricao.setText("");
+        if (comboPessoa.getItemCount() > 0) comboPessoa.setSelectedIndex(0);
+        tfDescricao.setText("");
         tfValor.setText("");
         tabela.clearSelection();
     }
 
     public void recarregar() {
+        atualizarComboPessoas();
         if (!tfEvento.isFocusOwner()) tfEvento.setText(service.getNomeEvento());
         linhas = service.getVendasCaixa();
         tableModel.setRowCount(0);
         for (VendaCaixa v : linhas) {
             tableModel.addRow(new Object[]{
-                v.getPessoaId(),
                 nomeResolver.apply(v.getPessoaId()),
                 String.format("R$ %.2f", v.getValor()),
                 v.getDescricao()
@@ -187,13 +190,34 @@ public class CaixaTab extends JPanel {
                 service.totalCaixa(), linhas.size()));
     }
 
-    private String lerId() {
-        try {
-            return CampoUtil.id(tfId.getText());
-        } catch (IllegalArgumentException ex) {
-            aviso("ID da pessoa não informado.");
-            return null;
+    private void atualizarComboPessoas() {
+        Pessoa selecionada = (Pessoa) comboPessoa.getSelectedItem();
+        comboPessoa.removeAllItems();
+        comboPessoa.addItem(null);
+        for (Pessoa p : pessoaService.listar()) comboPessoa.addItem(p);
+        if (selecionada != null) {
+            for (int i = 1; i < comboPessoa.getItemCount(); i++) {
+                if (comboPessoa.getItemAt(i).getId().equals(selecionada.getId())) {
+                    comboPessoa.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
+    }
+
+    private void selecionarNoComboPessoa(String pessoaId) {
+        if (pessoaId == null || pessoaId.isEmpty()) { comboPessoa.setSelectedIndex(0); return; }
+        for (int i = 1; i < comboPessoa.getItemCount(); i++) {
+            if (comboPessoa.getItemAt(i).getId().equals(pessoaId)) {
+                comboPessoa.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
+    private String lerPessoaId() {
+        Pessoa p = (Pessoa) comboPessoa.getSelectedItem();
+        return p == null ? "" : p.getId();
     }
 
     private Double lerValor() {
@@ -207,5 +231,15 @@ public class CaixaTab extends JPanel {
 
     private void aviso(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Atenção", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private static class PessoaRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value,
+                int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            setText(value instanceof Pessoa p ? p.getNome() : "(Anônimo)");
+            return this;
+        }
     }
 }

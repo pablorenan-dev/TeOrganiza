@@ -4,6 +4,8 @@ import com.teamteorganiza.financeiro.Doador;
 import com.teamteorganiza.financeiro.FinanceiroService;
 import com.teamteorganiza.financeiro.model.ContribuicaoVaquinha;
 import com.teamteorganiza.financeiro.model.Vaquinha;
+import com.teamteorganiza.pessoas.Pessoa;
+import com.teamteorganiza.pessoas.PessoaService;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -14,6 +16,7 @@ import java.util.function.Function;
 public class VaquinhaTab extends JPanel {
 
     private final FinanceiroService service;
+    private final PessoaService pessoaService;
     private final Function<String, String> nomeResolver;
     private final Runnable onChange;
 
@@ -22,24 +25,28 @@ public class VaquinhaTab extends JPanel {
     private final DefaultTableModel tableModel;
     private final JTable tabela;
     private final DefaultTableModel topModel;
-    private final JTextField tfId = new JTextField(24);
-    private final JTextArea taDescricao = new JTextArea(3, 20);
+    private final JComboBox<Pessoa> comboPessoa = new JComboBox<>();
+    private final JTextField tfDescricao = new JTextField(20);
     private final JTextField tfValor = new JTextField(10);
 
     private List<ContribuicaoVaquinha> linhas = List.of();
     private boolean atualizandoCombo = false;
 
-    public VaquinhaTab(FinanceiroService service, Function<String, String> nomeResolver, Runnable onChange) {
+    public VaquinhaTab(FinanceiroService service, PessoaService pessoaService,
+                       Function<String, String> nomeResolver, Runnable onChange) {
         this.service = service;
+        this.pessoaService = pessoaService;
         this.nomeResolver = nomeResolver;
         this.onChange = onChange;
+
+        comboPessoa.setRenderer(new PessoaRenderer());
 
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
         add(montarTopo(), BorderLayout.NORTH);
 
-        String[] colunas = {"ID Pessoa", "Nome", "Valor", "Descrição"};
+        String[] colunas = {"Nome", "Valor", "Descrição"};
         tableModel = new DefaultTableModel(colunas, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
@@ -49,14 +56,14 @@ public class VaquinhaTab extends JPanel {
             if (!e.getValueIsAdjusting()) preencher();
         });
 
-        topModel = new DefaultTableModel(new String[]{"#", "ID", "Nome", "Total"}, 0) {
+        topModel = new DefaultTableModel(new String[]{"#", "Nome", "Total"}, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
         JTable topTabela = new JTable(topModel);
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBorder(BorderFactory.createTitledBorder("Top 3 doadores (todas as vaquinhas)"));
         topPanel.add(new JScrollPane(topTabela), BorderLayout.CENTER);
-        topPanel.setPreferredSize(new Dimension(280, 0));
+        topPanel.setPreferredSize(new Dimension(240, 0));
 
         JPanel centro = new JPanel(new BorderLayout(8, 8));
         centro.add(new JScrollPane(tabela), BorderLayout.CENTER);
@@ -91,25 +98,21 @@ public class VaquinhaTab extends JPanel {
         c.insets = new Insets(4, 4, 4, 4);
         c.anchor = GridBagConstraints.WEST;
 
-        taDescricao.setLineWrap(true);
-        taDescricao.setWrapStyleWord(true);
+        c.gridx = 0; c.gridy = 0; painel.add(new JLabel("Pessoa:"), c);
+        c.gridx = 1; c.gridy = 0; c.fill = GridBagConstraints.HORIZONTAL; painel.add(comboPessoa, c);
+        c.fill = GridBagConstraints.NONE;
 
-        c.gridx = 0; c.gridy = 0; painel.add(new JLabel("ID (pessoa):"), c);
-        c.gridx = 1; c.gridy = 0; painel.add(tfId, c);
+        c.gridx = 0; c.gridy = 1; painel.add(new JLabel("Descrição:"), c);
+        c.gridx = 1; c.gridy = 1; painel.add(tfDescricao, c);
 
-        c.gridx = 0; c.gridy = 1; c.anchor = GridBagConstraints.NORTHWEST;
-        painel.add(new JLabel("Descrição:"), c);
-        c.gridx = 1; c.gridy = 1; painel.add(new JScrollPane(taDescricao), c);
-        c.anchor = GridBagConstraints.WEST;
-
-        c.gridx = 0; c.gridy = 2; painel.add(new JLabel("Valor:"), c);
+        c.gridx = 0; c.gridy = 2; painel.add(new JLabel("Valor (R$):"), c);
         c.gridx = 1; c.gridy = 2; painel.add(tfValor, c);
 
         JPanel botoes = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        JButton btnCriar = new JButton("Criar");
-        JButton btnEditar = new JButton("Editar");
+        JButton btnCriar   = new JButton("Criar");
+        JButton btnEditar  = new JButton("Editar");
         JButton btnDeletar = new JButton("Deletar");
-        JButton btnLimpar = new JButton("Limpar");
+        JButton btnLimpar  = new JButton("Limpar");
         botoes.add(btnCriar); botoes.add(btnEditar); botoes.add(btnDeletar); botoes.add(btnLimpar);
         c.gridx = 1; c.gridy = 3; painel.add(botoes, c);
 
@@ -122,12 +125,12 @@ public class VaquinhaTab extends JPanel {
     }
 
     private void novaVaquinha() {
-        JTextField tfTitulo = new JTextField(18);
+        JTextField tfTitulo  = new JTextField(18);
         JTextField tfObjetivo = new JTextField(18);
-        JTextField tfMeta = new JTextField(10);
+        JTextField tfMeta    = new JTextField(10);
         JPanel form = new JPanel(new GridLayout(0, 2, 4, 4));
-        form.add(new JLabel("Título:"));   form.add(tfTitulo);
-        form.add(new JLabel("Objetivo:")); form.add(tfObjetivo);
+        form.add(new JLabel("Título:"));    form.add(tfTitulo);
+        form.add(new JLabel("Objetivo:"));  form.add(tfObjetivo);
         form.add(new JLabel("Meta (R$):")); form.add(tfMeta);
 
         int opcao = JOptionPane.showConfirmDialog(this, form, "Nova vaquinha",
@@ -151,10 +154,11 @@ public class VaquinhaTab extends JPanel {
     private void criar() {
         Vaquinha v = vaquinhaSelecionada();
         if (v == null) { aviso("Crie ou selecione uma vaquinha primeiro."); return; }
-        String id = lerId();
+        String pessoaId = lerPessoaId();
+        if (pessoaId == null) return;
         Double valor = lerValor();
-        if (id == null || valor == null) return;
-        service.contribuir(v, id, valor, taDescricao.getText().trim());
+        if (valor == null) return;
+        service.contribuir(v, pessoaId, valor, tfDescricao.getText().trim());
         limpar();
         onChange.run();
     }
@@ -164,10 +168,11 @@ public class VaquinhaTab extends JPanel {
         if (v == null) return;
         int row = tabela.getSelectedRow();
         if (row < 0) { aviso("Selecione uma contribuição para editar."); return; }
-        String id = lerId();
+        String pessoaId = lerPessoaId();
+        if (pessoaId == null) return;
         Double valor = lerValor();
-        if (id == null || valor == null) return;
-        service.editarContribuicao(v, linhas.get(row).getId(), id, taDescricao.getText().trim(), valor);
+        if (valor == null) return;
+        service.editarContribuicao(v, linhas.get(row).getId(), pessoaId, tfDescricao.getText().trim(), valor);
         limpar();
         onChange.run();
     }
@@ -186,24 +191,25 @@ public class VaquinhaTab extends JPanel {
         int row = tabela.getSelectedRow();
         if (row < 0 || row >= linhas.size()) return;
         ContribuicaoVaquinha c = linhas.get(row);
-        tfId.setText(c.getPessoaId());
-        taDescricao.setText(c.getDescricao());
+        selecionarNoComboPessoa(c.getPessoaId());
+        tfDescricao.setText(c.getDescricao());
         tfValor.setText(String.format("%.2f", c.getValor()));
     }
 
     private void limpar() {
-        tfId.setText("");
-        taDescricao.setText("");
+        if (comboPessoa.getItemCount() > 0) comboPessoa.setSelectedIndex(0);
+        tfDescricao.setText("");
         tfValor.setText("");
         tabela.clearSelection();
     }
 
     public void recarregar() {
+        atualizarComboPessoas();
+
         atualizandoCombo = true;
         Vaquinha selecionada = vaquinhaSelecionada();
         combo.removeAllItems();
-        List<Vaquinha> vaquinhas = service.getVaquinhas();
-        for (Vaquinha v : vaquinhas) combo.addItem(new VaquinhaItem(v));
+        for (Vaquinha v : service.getVaquinhas()) combo.addItem(new VaquinhaItem(v));
         if (selecionada != null) {
             for (int i = 0; i < combo.getItemCount(); i++) {
                 if (combo.getItemAt(i).vaquinha == selecionada) { combo.setSelectedIndex(i); break; }
@@ -216,13 +222,37 @@ public class VaquinhaTab extends JPanel {
         atualizarTop3();
     }
 
+    private void atualizarComboPessoas() {
+        Pessoa selecionada = (Pessoa) comboPessoa.getSelectedItem();
+        comboPessoa.removeAllItems();
+        comboPessoa.addItem(null);
+        for (Pessoa p : pessoaService.listar()) comboPessoa.addItem(p);
+        if (selecionada != null) {
+            for (int i = 1; i < comboPessoa.getItemCount(); i++) {
+                if (comboPessoa.getItemAt(i).getId().equals(selecionada.getId())) {
+                    comboPessoa.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void selecionarNoComboPessoa(String pessoaId) {
+        if (pessoaId == null || pessoaId.isEmpty()) { comboPessoa.setSelectedIndex(0); return; }
+        for (int i = 1; i < comboPessoa.getItemCount(); i++) {
+            if (comboPessoa.getItemAt(i).getId().equals(pessoaId)) {
+                comboPessoa.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
     private void recarregarTabela() {
         Vaquinha v = vaquinhaSelecionada();
         linhas = (v == null) ? List.of() : v.getContribuicoes();
         tableModel.setRowCount(0);
         for (ContribuicaoVaquinha c : linhas) {
             tableModel.addRow(new Object[]{
-                c.getPessoaId(),
                 nomeResolver.apply(c.getPessoaId()),
                 String.format("R$ %.2f", c.getValor()),
                 c.getDescricao()
@@ -244,7 +274,6 @@ public class VaquinhaTab extends JPanel {
         for (Doador d : service.top3Doadores()) {
             topModel.addRow(new Object[]{
                 pos++,
-                d.pessoaId(),
                 nomeResolver.apply(d.pessoaId()),
                 String.format("R$ %.2f", d.total())
             });
@@ -262,13 +291,10 @@ public class VaquinhaTab extends JPanel {
         return item == null ? null : item.vaquinha;
     }
 
-    private String lerId() {
-        try {
-            return CampoUtil.id(tfId.getText());
-        } catch (IllegalArgumentException ex) {
-            aviso("ID da pessoa não informado.");
-            return null;
-        }
+    private String lerPessoaId() {
+        Pessoa p = (Pessoa) comboPessoa.getSelectedItem();
+        if (p == null) { aviso("Selecione uma pessoa."); return null; }
+        return p.getId();
     }
 
     private Double lerValor() {
@@ -282,6 +308,16 @@ public class VaquinhaTab extends JPanel {
 
     private void aviso(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Atenção", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private static class PessoaRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value,
+                int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            setText(value instanceof Pessoa p ? p.getNome() : "(Anônimo)");
+            return this;
+        }
     }
 
     private static class VaquinhaItem {

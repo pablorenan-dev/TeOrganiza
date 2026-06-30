@@ -12,12 +12,15 @@ import java.util.Map;
 public class FinanceiroService {
 
     private final MensalidadeRepository mensalidadeRepo;
-    private final List<MovimentacaoFinanceira> movimentacoes = new ArrayList<>();
+    private final MovimentacaoFinanceiraRepository movimentacaoRepo;
+    private final List<MovimentacaoFinanceira> movimentacoes;
     private final List<Vaquinha> vaquinhas = new ArrayList<>();
     private final CaixaEvento caixa = new CaixaEvento("Evento 1");
 
-    public FinanceiroService(MensalidadeRepository mensalidadeRepo) {
+    public FinanceiroService(MensalidadeRepository mensalidadeRepo, MovimentacaoFinanceiraRepository movimentacaoRepo) {
         this.mensalidadeRepo = mensalidadeRepo;
+        this.movimentacaoRepo = movimentacaoRepo;
+        this.movimentacoes = new ArrayList<>(movimentacaoRepo.listarTodos());
     }
 
     // ===================== Mensalidades =====================
@@ -40,12 +43,14 @@ public class FinanceiroService {
     public MovimentacaoFinanceira registrarEntrada(String pessoaId, String descricao, double valor) {
         MovimentacaoFinanceira m = new MovimentacaoFinanceira(pessoaId, descricao, valor, TipoLancamento.RECEITA);
         movimentacoes.add(m);
+        movimentacaoRepo.salvar(m);
         return m;
     }
 
     public MovimentacaoFinanceira registrarDespesa(String pessoaId, String descricao, double valor) {
         MovimentacaoFinanceira m = new MovimentacaoFinanceira(pessoaId, descricao, valor, TipoLancamento.DESPESA);
         movimentacoes.add(m);
+        movimentacaoRepo.salvar(m);
         return m;
     }
 
@@ -66,6 +71,7 @@ public class FinanceiroService {
                 m.setPessoaId(pessoaId);
                 m.setDescricao(descricao);
                 m.setValor(valor);
+                movimentacaoRepo.salvar(m);
                 return;
             }
         }
@@ -73,6 +79,7 @@ public class FinanceiroService {
 
     public void removerMovimentacao(String id) {
         movimentacoes.removeIf(m -> m.getId().equals(id));
+        movimentacaoRepo.remover(id);
     }
 
     public double totalEntradas() { return somar(getEntradas()); }
@@ -114,7 +121,9 @@ public class FinanceiroService {
         if (total > 0) {
             String desc = "Vendas do evento: " + caixa.getNomeEvento()
                     + " (" + caixa.quantidadeVendas() + " venda(s))";
-            movimentacoes.add(new MovimentacaoFinanceira("", desc, total, TipoLancamento.RECEITA));
+            MovimentacaoFinanceira m = new MovimentacaoFinanceira("", desc, total, TipoLancamento.RECEITA);
+            movimentacoes.add(m);
+            movimentacaoRepo.salvar(m);
         }
         caixa.novoEvento(nomeNovoEvento);
     }

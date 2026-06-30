@@ -32,10 +32,10 @@ public class FinanceiroPanel extends JPanel {
         Runnable onChange = this::recarregarTodas;
 
         extratoTab  = new ExtratoTab(service, nomeResolver);
-        entradasTab = new MovimentacaoTab(service, nomeResolver, onChange, TipoLancamento.RECEITA);
-        despesasTab = new MovimentacaoTab(service, nomeResolver, onChange, TipoLancamento.DESPESA);
-        vaquinhaTab = new VaquinhaTab(service, nomeResolver, onChange);
-        caixaTab    = new CaixaTab(service, nomeResolver, onChange);
+        entradasTab = new MovimentacaoTab(service, pessoaService, nomeResolver, onChange, TipoLancamento.RECEITA);
+        despesasTab = new MovimentacaoTab(service, pessoaService, nomeResolver, onChange, TipoLancamento.DESPESA);
+        vaquinhaTab = new VaquinhaTab(service, pessoaService, nomeResolver, onChange);
+        caixaTab    = new CaixaTab(service, pessoaService, nomeResolver, onChange);
 
         JTabbedPane abas = new JTabbedPane();
         abas.addTab("Extrato",   extratoTab);

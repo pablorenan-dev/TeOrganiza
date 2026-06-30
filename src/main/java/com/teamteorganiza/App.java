@@ -9,6 +9,7 @@ import com.teamteorganiza.eventos.EventosService;
 import com.teamteorganiza.eventos.ui.EventosPanel;
 import com.teamteorganiza.financeiro.FinanceiroService;
 import com.teamteorganiza.financeiro.MensalidadeRepositorySupabase;
+import com.teamteorganiza.financeiro.MovimentacaoFinanceiraRepositorySupabase;
 import com.teamteorganiza.financeiro.ui.FinanceiroPanel;
 import com.teamteorganiza.pessoas.InstrutorDadosRepositorySupabase;
 import com.teamteorganiza.pessoas.PessoaRepositorySupabase;
@@ -51,7 +52,8 @@ public class App {
                 new TipoPessoaRepositorySupabase()
             );
             FinanceiroService financeiroService = new FinanceiroService(
-                new MensalidadeRepositorySupabase()
+                new MensalidadeRepositorySupabase(),
+                new MovimentacaoFinanceiraRepositorySupabase()
             );
             EstoqueService estoqueService = new EstoqueService(
                 new EstoqueRepositorySupabase()
