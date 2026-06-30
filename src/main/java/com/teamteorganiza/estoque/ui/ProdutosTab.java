@@ -21,6 +21,7 @@ public class ProdutosTab extends JPanel {
     private final JTextField tfCategoria = new JTextField(16);
     private final JComboBox<UnidadeMedida> cbUnidade = new JComboBox<>(UnidadeMedida.values());
     private final JTextField tfMinimo = new JTextField(8);
+    private final JTextField tfPrecoVenda = new JTextField(8);
 
     private List<Produto> linhas = List.of();
 
@@ -31,7 +32,7 @@ public class ProdutosTab extends JPanel {
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-        String[] colunas = {"ID", "Nome", "Categoria", "Un.", "Qtd", "Mínimo", "Custo médio", "Status"};
+        String[] colunas = {"ID", "Nome", "Categoria", "Un.", "Qtd", "Mínimo", "Custo médio", "Preço venda", "Status"};
         tableModel = new DefaultTableModel(colunas, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
@@ -63,13 +64,16 @@ public class ProdutosTab extends JPanel {
         c.gridx = 0; c.gridy = 3; painel.add(new JLabel("Estoque mínimo:"), c);
         c.gridx = 1; c.gridy = 3; painel.add(tfMinimo, c);
 
+        c.gridx = 0; c.gridy = 4; painel.add(new JLabel("Preço de venda (R$):"), c);
+        c.gridx = 1; c.gridy = 4; painel.add(tfPrecoVenda, c);
+
         JPanel botoes = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         JButton btnCriar = new JButton("Criar");
         JButton btnEditar = new JButton("Editar");
         JButton btnDeletar = new JButton("Deletar");
         JButton btnLimpar = new JButton("Limpar");
         botoes.add(btnCriar); botoes.add(btnEditar); botoes.add(btnDeletar); botoes.add(btnLimpar);
-        c.gridx = 1; c.gridy = 4; painel.add(botoes, c);
+        c.gridx = 1; c.gridy = 5; painel.add(botoes, c);
 
         btnCriar.addActionListener(e -> criar());
         btnEditar.addActionListener(e -> editar());
@@ -82,10 +86,12 @@ public class ProdutosTab extends JPanel {
     private void criar() {
         Double minimo = lerMinimo();
         if (minimo == null) return;
+        Double preco = lerPreco();
+        if (preco == null) return;
         try {
             service.cadastrarProduto(tfNome.getText().trim(), tfCategoria.getText().trim(),
-                    (UnidadeMedida) cbUnidade.getSelectedItem(), minimo);
-        } catch (IllegalArgumentException ex) {
+                    (UnidadeMedida) cbUnidade.getSelectedItem(), minimo, preco);
+        } catch (RuntimeException ex) {
             aviso(ex.getMessage());
             return;
         }
@@ -98,10 +104,12 @@ public class ProdutosTab extends JPanel {
         if (row < 0) { aviso("Selecione um produto para editar."); return; }
         Double minimo = lerMinimo();
         if (minimo == null) return;
+        Double preco = lerPreco();
+        if (preco == null) return;
         try {
             service.editarProduto(linhas.get(row).getId(), tfNome.getText().trim(),
-                    tfCategoria.getText().trim(), (UnidadeMedida) cbUnidade.getSelectedItem(), minimo);
-        } catch (IllegalArgumentException ex) {
+                    tfCategoria.getText().trim(), (UnidadeMedida) cbUnidade.getSelectedItem(), minimo, preco);
+        } catch (RuntimeException ex) {
             aviso(ex.getMessage());
             return;
         }
@@ -112,7 +120,12 @@ public class ProdutosTab extends JPanel {
     private void deletar() {
         int row = tabela.getSelectedRow();
         if (row < 0) { aviso("Selecione um produto para deletar."); return; }
-        service.removerProduto(linhas.get(row).getId());
+        try {
+            service.removerProduto(linhas.get(row).getId());
+        } catch (RuntimeException ex) {
+            aviso(ex.getMessage());
+            return;
+        }
         limpar();
         onChange.run();
     }
@@ -125,6 +138,7 @@ public class ProdutosTab extends JPanel {
         tfCategoria.setText(p.getCategoria());
         cbUnidade.setSelectedItem(p.getUnidade());
         tfMinimo.setText(String.format("%.2f", p.getEstoqueMinimo()));
+        tfPrecoVenda.setText(String.format("%.2f", p.getPrecoVenda()));
     }
 
     private void limpar() {
@@ -132,6 +146,7 @@ public class ProdutosTab extends JPanel {
         tfCategoria.setText("");
         cbUnidade.setSelectedIndex(0);
         tfMinimo.setText("");
+        tfPrecoVenda.setText("");
         tabela.clearSelection();
     }
 
@@ -147,6 +162,7 @@ public class ProdutosTab extends JPanel {
                 String.format("%.2f", p.getQuantidade()),
                 String.format("%.2f", p.getEstoqueMinimo()),
                 String.format("R$ %.2f", p.getCustoMedio()),
+                String.format("R$ %.2f", p.getPrecoVenda()),
                 p.abaixoDoMinimo() ? "REPOR" : "OK"
             });
         }
@@ -157,6 +173,15 @@ public class ProdutosTab extends JPanel {
             return CampoUtil.numero(tfMinimo.getText());
         } catch (NumberFormatException ex) {
             aviso("Estoque mínimo inválido.");
+            return null;
+        }
+    }
+
+    private Double lerPreco() {
+        try {
+            return CampoUtil.numero(tfPrecoVenda.getText());
+        } catch (NumberFormatException ex) {
+            aviso("Preço de venda inválido.");
             return null;
         }
     }

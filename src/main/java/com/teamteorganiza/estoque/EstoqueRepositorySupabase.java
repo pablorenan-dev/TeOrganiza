@@ -20,15 +20,16 @@ public class EstoqueRepositorySupabase implements EstoqueRepository {
     @Override
     public void salvar(Produto p) {
         String sql = """
-            INSERT INTO produtos (id, organizacao_id, nome, categoria, unidade, quantidade, estoque_minimo, custo_medio)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO produtos (id, organizacao_id, nome, categoria, unidade, quantidade, estoque_minimo, custo_medio, preco_venda)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (id) DO UPDATE SET
               nome           = EXCLUDED.nome,
               categoria      = EXCLUDED.categoria,
               unidade        = EXCLUDED.unidade,
               quantidade     = EXCLUDED.quantidade,
               estoque_minimo = EXCLUDED.estoque_minimo,
-              custo_medio    = EXCLUDED.custo_medio
+              custo_medio    = EXCLUDED.custo_medio,
+              preco_venda    = EXCLUDED.preco_venda
             """;
         try (PreparedStatement ps = SupabaseClient.getConnection().prepareStatement(sql)) {
             ps.setObject(1, UUID.fromString(p.getId()));
@@ -39,6 +40,7 @@ public class EstoqueRepositorySupabase implements EstoqueRepository {
             ps.setDouble(6, p.getQuantidade());
             ps.setDouble(7, p.getEstoqueMinimo());
             ps.setDouble(8, p.getCustoMedio());
+            ps.setDouble(9, p.getPrecoVenda());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Erro ao salvar produto: " + e.getMessage(), e);
@@ -98,7 +100,8 @@ public class EstoqueRepositorySupabase implements EstoqueRepository {
             UnidadeMedida.valueOf(rs.getString("unidade")),
             rs.getDouble("quantidade"),
             rs.getDouble("estoque_minimo"),
-            rs.getDouble("custo_medio")
+            rs.getDouble("custo_medio"),
+            rs.getDouble("preco_venda")
         );
     }
 }

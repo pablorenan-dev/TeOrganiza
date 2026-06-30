@@ -18,15 +18,17 @@ public class EstoqueService {
     }
 
     public Produto cadastrarProduto(String nome, String categoria, UnidadeMedida unidade,
-                                    double estoqueMinimo) {
+                                    double estoqueMinimo, double precoVenda) {
         if (nome == null || nome.isBlank())
             throw new IllegalArgumentException("Nome do produto é obrigatório.");
         if (estoqueMinimo < 0)
             throw new IllegalArgumentException("Estoque mínimo não pode ser negativo.");
+        if (precoVenda < 0)
+            throw new IllegalArgumentException("Preço de venda não pode ser negativo.");
         repositorio.buscarPorNome(nome).ifPresent(p -> {
             throw new IllegalArgumentException("Já existe um produto com o nome: " + nome);
         });
-        Produto produto = new Produto(nome, categoria, unidade, estoqueMinimo);
+        Produto produto = new Produto(nome, categoria, unidade, estoqueMinimo, precoVenda);
         repositorio.salvar(produto);
         return produto;
     }
@@ -36,11 +38,13 @@ public class EstoqueService {
     }
 
     public void editarProduto(String id, String nome, String categoria, UnidadeMedida unidade,
-                              double estoqueMinimo) {
+                              double estoqueMinimo, double precoVenda) {
         if (nome == null || nome.isBlank())
             throw new IllegalArgumentException("Nome do produto é obrigatório.");
         if (estoqueMinimo < 0)
             throw new IllegalArgumentException("Estoque mínimo não pode ser negativo.");
+        if (precoVenda < 0)
+            throw new IllegalArgumentException("Preço de venda não pode ser negativo.");
         repositorio.buscarPorNome(nome)
                 .filter(outro -> !outro.getId().equals(id))
                 .ifPresent(outro -> {
@@ -51,6 +55,7 @@ public class EstoqueService {
         produto.setCategoria(categoria);
         produto.setUnidade(unidade);
         produto.setEstoqueMinimo(estoqueMinimo);
+        produto.setPrecoVenda(precoVenda);
         repositorio.salvar(produto);
     }
 
@@ -100,6 +105,22 @@ public class EstoqueService {
         produto.setQuantidade(produto.getQuantidade() - quantidade);
         repositorio.salvar(produto);
         MovimentoEstoque mov = new MovimentoEstoque(produtoId, tipo, quantidade, 0, observacao);
+        movimentos.add(mov);
+        return mov;
+    }
+
+    /**
+     * Devolve quantidade ao estoque (estorno de uma venda do caixa que foi
+     * editada ou removida). Não recalcula o custo médio, pois não é uma compra.
+     */
+    public MovimentoEstoque reporEstoque(String produtoId, double quantidade) {
+        if (quantidade <= 0)
+            throw new IllegalArgumentException("Quantidade do estorno deve ser maior que zero.");
+        Produto produto = buscarProduto(produtoId);
+        produto.setQuantidade(produto.getQuantidade() + quantidade);
+        repositorio.salvar(produto);
+        MovimentoEstoque mov = new MovimentoEstoque(produtoId, TipoMovimentoEstoque.ENTRADA,
+                quantidade, produto.getCustoMedio(), "Estorno de venda do caixa");
         movimentos.add(mov);
         return mov;
     }

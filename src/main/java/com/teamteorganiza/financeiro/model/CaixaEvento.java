@@ -17,8 +17,9 @@ public class CaixaEvento {
 
     public List<VendaCaixa> getVendas() { return vendas; }
 
-    public VendaCaixa registrarVenda(String pessoaId, String descricao, double valor) {
-        VendaCaixa venda = new VendaCaixa(pessoaId, descricao, valor);
+    public VendaCaixa registrarVenda(String pessoaId, String produtoId, double quantidade,
+                                     String vendedorNome, String descricao, double valor) {
+        VendaCaixa venda = new VendaCaixa(pessoaId, produtoId, quantidade, vendedorNome, descricao, valor);
         vendas.add(venda);
         return venda;
     }

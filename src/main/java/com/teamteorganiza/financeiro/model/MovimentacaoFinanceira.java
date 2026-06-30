@@ -11,6 +11,11 @@ public class MovimentacaoFinanceira extends Lancamento {
         this.pessoaId = pessoaId;
     }
 
+    public MovimentacaoFinanceira(String id, String pessoaId, String descricao, double valor, java.time.LocalDate data, TipoLancamento tipo) {
+        super(id, descricao, valor, data, tipo);
+        this.pessoaId = pessoaId;
+    }
+
     public String getPessoaId() { return pessoaId; }
     public void setPessoaId(String pessoaId) { this.pessoaId = pessoaId; }
 

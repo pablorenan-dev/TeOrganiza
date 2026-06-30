@@ -1,5 +1,6 @@
 package com.teamteorganiza.financeiro.ui;
 
+import com.teamteorganiza.estoque.EstoqueService;
 import com.teamteorganiza.financeiro.FinanceiroService;
 import com.teamteorganiza.financeiro.model.TipoLancamento;
 import com.teamteorganiza.pessoas.Pessoa;
@@ -18,7 +19,7 @@ public class FinanceiroPanel extends JPanel {
     private final CaixaTab caixaTab;
     private Runnable onVoltar;
 
-    public FinanceiroPanel(FinanceiroService service, PessoaService pessoaService) {
+    public FinanceiroPanel(FinanceiroService service, PessoaService pessoaService, EstoqueService estoqueService) {
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
@@ -32,10 +33,10 @@ public class FinanceiroPanel extends JPanel {
         Runnable onChange = this::recarregarTodas;
 
         extratoTab  = new ExtratoTab(service, nomeResolver);
-        entradasTab = new MovimentacaoTab(service, nomeResolver, onChange, TipoLancamento.RECEITA);
-        despesasTab = new MovimentacaoTab(service, nomeResolver, onChange, TipoLancamento.DESPESA);
-        vaquinhaTab = new VaquinhaTab(service, nomeResolver, onChange);
-        caixaTab    = new CaixaTab(service, nomeResolver, onChange);
+        entradasTab = new MovimentacaoTab(service, pessoaService, nomeResolver, onChange, TipoLancamento.RECEITA);
+        despesasTab = new MovimentacaoTab(service, pessoaService, nomeResolver, onChange, TipoLancamento.DESPESA);
+        vaquinhaTab = new VaquinhaTab(service, pessoaService, nomeResolver, onChange);
+        caixaTab    = new CaixaTab(service, pessoaService, estoqueService, nomeResolver, onChange);
 
         JTabbedPane abas = new JTabbedPane();
         abas.addTab("Extrato",   extratoTab);
