@@ -1,6 +1,7 @@
 package com.teamteorganiza;
 
 import com.teamteorganiza.auth.LoginDialog;
+import com.teamteorganiza.auth.UsuariosDialog;
 import com.teamteorganiza.estoque.EstoqueRepositorySupabase;
 import com.teamteorganiza.estoque.EstoqueService;
 import com.teamteorganiza.estoque.ui.EstoquePanel;
@@ -81,6 +82,7 @@ public class App {
             homePanel.setOnFinanceiro(() -> cards.show(root, "FINANCEIRO"));
             homePanel.setOnEstoque(   () -> cards.show(root, "ESTOQUE"));
             homePanel.setOnEventos(   () -> cards.show(root, "EVENTOS"));
+            homePanel.setOnUsuarios(  () -> new UsuariosDialog(frame).setVisible(true));
 
             pessoaPanel.setOnVoltar(    () -> cards.show(root, "HOME"));
             pessoaPanel.setOnTipos(     () -> cards.show(root, "TIPO_PESSOA"));

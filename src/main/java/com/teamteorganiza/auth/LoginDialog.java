@@ -195,7 +195,14 @@ public class LoginDialog extends JDialog {
                         conn.setAutoCommit(true);
                     }
                 } catch (Exception ex) {
-                    erro = "Erro ao criar conta: " + ex.getMessage();
+                    String msg = ex.getMessage();
+                    if (msg != null && msg.contains("organizacoes_nome_unico")) {
+                        erro = "Já existe uma organização com esse nome.";
+                    } else if (msg != null && msg.contains("usuarios_email_key")) {
+                        erro = "Esse e-mail já está cadastrado.";
+                    } else {
+                        erro = "Erro ao criar conta: " + msg;
+                    }
                 }
                 return null;
             }
